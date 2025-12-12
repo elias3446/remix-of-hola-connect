@@ -11,6 +11,7 @@ import { AssistantButton } from "@/components/asistente";
 import { NotificationPermissionPrompt } from "@/components/notifications";
 import { ThemeSync } from "@/components/ThemeSync";
 import { NotificationsProvider } from "@/contexts/NotificationsContext";
+import { MessagingProvider } from "@/contexts/MessagingContext";
 
 // Memorizar componentes que no deben re-renderizarse
 const MemoizedAppSidebar = memo(AppSidebar);
@@ -63,24 +64,26 @@ function LayoutContent() {
 
   return (
     <NotificationsProvider>
-      <ThemeSync />
-      <div className="flex min-h-svh w-full">
-        <MemoizedAppSidebar />
-        <SidebarInset className="flex flex-col flex-1 h-svh overflow-hidden">
-          <MemoizedPageHeader />
-          <main className="flex-1 overflow-hidden">
-            <Outlet />
-          </main>
-        </SidebarInset>
-        <AssistantButton />
-        <NotificationPermissionPrompt 
-          variant="banner" 
-          delay={5000} 
-          onPermissionChange={(granted) => {
-            console.log('[Notifications] Permiso:', granted ? 'concedido' : 'denegado');
-          }}
-        />
-      </div>
+      <MessagingProvider>
+        <ThemeSync />
+        <div className="flex min-h-svh w-full">
+          <MemoizedAppSidebar />
+          <SidebarInset className="flex flex-col flex-1 h-svh overflow-hidden">
+            <MemoizedPageHeader />
+            <main className="flex-1 overflow-hidden">
+              <Outlet />
+            </main>
+          </SidebarInset>
+          <AssistantButton />
+          <NotificationPermissionPrompt 
+            variant="banner" 
+            delay={5000} 
+            onPermissionChange={(granted) => {
+              console.log('[Notifications] Permiso:', granted ? 'concedido' : 'denegado');
+            }}
+          />
+        </div>
+      </MessagingProvider>
     </NotificationsProvider>
   );
 }

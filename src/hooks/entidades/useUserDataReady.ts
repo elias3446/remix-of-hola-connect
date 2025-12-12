@@ -165,6 +165,41 @@ export function useUserDataReady(): UserDataState {
   }, [queryClient]);
 
   /**
+   * Carga conversaciones en segundo plano
+   */
+  const loadConversationsBackground = useCallback(async (authUserId: string) => {
+    try {
+      // Cargar conversaciones
+      const { data: conversations } = await supabase.rpc('get_user_conversations', {
+        p_user_id: authUserId,
+        p_filter: 'all',
+      });
+
+      if (conversations) {
+        queryClient.setQueryData(['conversations', 'all'], conversations);
+      }
+
+      // Cargar estados activos
+      const { data: estados } = await supabase
+        .from('estados')
+        .select('*')
+        .eq('activo', true)
+        .gte('expires_at', new Date().toISOString())
+        .order('created_at', { ascending: false });
+
+      if (estados) {
+        queryClient.setQueryData(['estados'], estados);
+      }
+
+      if (process.env.NODE_ENV === 'development') {
+        console.log('[useUserDataReady] Background data loaded (conversations, estados)');
+      }
+    } catch (error) {
+      console.error('[useUserDataReady] Error loading background data:', error);
+    }
+  }, [queryClient]);
+
+  /**
    * Carga datos desde Supabase y los persiste
    * Respeta las relaciones: profiles.user_id -> auth, settings/roles.user_id -> profiles.id
    */
@@ -240,6 +275,9 @@ export function useUserDataReady(): UserDataState {
         userRoles,
       });
 
+      // Cargar conversaciones en segundo plano (no bloquea la UI)
+      loadConversationsBackground(authUserId);
+
       if (process.env.NODE_ENV === 'development') {
         console.log('[useUserDataReady] Data loaded from database and persisted');
       }
@@ -252,6 +290,7 @@ export function useUserDataReady(): UserDataState {
       }));
     }
   }, [queryClient]);
+
 
   /**
    * Inicializa datos: primero desde localStorage, luego revalida en background

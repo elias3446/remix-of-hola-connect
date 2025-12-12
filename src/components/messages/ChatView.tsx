@@ -11,6 +11,7 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { useMessages } from '@/hooks/messages/useMessages';
 import { useConversations } from '@/hooks/messages/useConversations';
 import { useUserPresence } from '@/hooks/messages/useUserPresence';
+import { useMessaging } from '@/contexts/MessagingContext';
 import type { ConversacionExtendida } from '@/hooks/messages/types';
 import { animationClasses } from '@/hooks/optimizacion';
 
@@ -34,6 +35,7 @@ export function ChatView({
 
   const { isUserOnline } = useUserPresence();
   const { hideConversation, leaveGroup, toggleMute } = useConversations();
+  const { setActiveConversation } = useMessaging();
 
   const {
     messages,
@@ -59,12 +61,17 @@ export function ChatView({
     }
   }, [messages, shouldAutoScroll]);
 
-  // Marcar como leído al abrir la conversación
+  // Marcar como leído al abrir la conversación usando el contexto
   useEffect(() => {
     if (conversation) {
+      setActiveConversation(conversation.id);
       markAsRead();
     }
-  }, [conversation?.id, markAsRead]);
+    
+    return () => {
+      setActiveConversation(null);
+    };
+  }, [conversation?.id, markAsRead, setActiveConversation]);
 
   // Detectar scroll para pausar auto-scroll
   const handleScroll = () => {
