@@ -3,7 +3,7 @@ import { Mail, Bell, CheckSquare } from 'lucide-react';
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { cn } from '@/lib/utils';
 import { transitionClasses } from '@/hooks/optimizacion';
-import type { NotificationFilter } from '@/hooks/controlador/useNotifications';
+import type { NotificationFilter } from '@/contexts/NotificationsContext';
 
 interface NotificationTabsProps {
   value: NotificationFilter;

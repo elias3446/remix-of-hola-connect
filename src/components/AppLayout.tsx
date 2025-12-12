@@ -10,6 +10,7 @@ import { useUserPresence } from "@/hooks/messages/useUserPresence";
 import { AssistantButton } from "@/components/asistente";
 import { NotificationPermissionPrompt } from "@/components/notifications";
 import { ThemeSync } from "@/components/ThemeSync";
+import { NotificationsProvider } from "@/contexts/NotificationsContext";
 
 // Memorizar componentes que no deben re-renderizarse
 const MemoizedAppSidebar = memo(AppSidebar);
@@ -61,17 +62,17 @@ function LayoutContent() {
   }
 
   return (
-    <>
+    <NotificationsProvider>
       <ThemeSync />
       <div className="flex min-h-svh w-full">
         <MemoizedAppSidebar />
-      <SidebarInset className="flex flex-col flex-1 h-svh overflow-hidden">
-        <MemoizedPageHeader />
-        <main className="flex-1 overflow-hidden">
-          <Outlet />
-        </main>
-      </SidebarInset>
-      <AssistantButton />
+        <SidebarInset className="flex flex-col flex-1 h-svh overflow-hidden">
+          <MemoizedPageHeader />
+          <main className="flex-1 overflow-hidden">
+            <Outlet />
+          </main>
+        </SidebarInset>
+        <AssistantButton />
         <NotificationPermissionPrompt 
           variant="banner" 
           delay={5000} 
@@ -80,7 +81,7 @@ function LayoutContent() {
           }}
         />
       </div>
-    </>
+    </NotificationsProvider>
   );
 }
 

@@ -34,7 +34,7 @@ import { cn } from "@/lib/utils";
 import { useAnimations, transitionClasses, hoverClasses } from "@/hooks/optimizacion";
 import { useMenuVisibility, type MenuItem } from "@/hooks/controlador/useMenuVisibility";
 import { useUserDataReady } from "@/hooks/entidades";
-import { useNotificationCount } from "@/hooks/controlador/useNotificationCount";
+import { useUnreadCount } from "@/contexts/NotificationsContext";
 import { UserMenu } from "@/components/UserMenu";
 import type { Database } from "@/integrations/supabase/types";
 
@@ -125,8 +125,8 @@ export function AppSidebar() {
   // Obtener datos del usuario desde el caché de React Query
   const { profile, userRoles } = useUserDataReady();
   
-  // Obtener conteo de notificaciones en tiempo real
-  const { unreadCount: notificationCount } = useNotificationCount();
+  // Obtener conteo de notificaciones desde el contexto global
+  const notificationCount = useUnreadCount();
   
   // Filtrar menú según roles y permisos del usuario
   const { filterMenuItems } = useMenuVisibility({ userRoles });

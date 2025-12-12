@@ -1,7 +1,7 @@
 import { memo, useState, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Bell, Check, Trash2, ChevronRight, Loader2 } from 'lucide-react';
-import { format, formatDistanceToNow } from 'date-fns';
+import { formatDistanceToNow } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -14,8 +14,7 @@ import {
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Separator } from '@/components/ui/separator';
 import { cn } from '@/lib/utils';
-import { useNotifications } from '@/hooks/controlador/useNotifications';
-import { useNotificationCount } from '@/hooks/controlador/useNotificationCount';
+import { useNotificationsContext } from '@/contexts/NotificationsContext';
 import {
   useOptimizedComponent,
   transitionClasses,
@@ -56,21 +55,23 @@ function NotificationsDropdownComponent({ className }: NotificationsDropdownProp
   const navigate = useNavigate();
   const [open, setOpen] = useState(false);
   
-  const { unreadCount } = useNotificationCount();
-  
   const {
     notifications,
+    stats,
     isLoading,
     selectedIds,
     selectedCount,
-    isAllSelected,
     toggleSelection,
-    toggleSelectAll,
     markAsRead,
     markAllAsRead,
     deleteNotifications,
     deleteSelected,
-  } = useNotifications({ pageSize: 5, initialFilter: 'unread' });
+  } = useNotificationsContext();
+  
+  const unreadCount = stats.unread;
+  
+  // Solo mostrar las primeras 5 notificaciones no leídas en el dropdown
+  const displayNotifications = notifications.slice(0, 5);
   
   // Optimización del componente
   useOptimizedComponent({ open, unreadCount }, { componentName: 'NotificationsDropdown' });
@@ -137,14 +138,14 @@ function NotificationsDropdownComponent({ className }: NotificationsDropdownProp
         </div>
         
         {/* Select All & Actions - Solo mostrar si hay notificaciones */}
-        {notifications.length > 0 && (
+        {displayNotifications.length > 0 && (
           <div className="flex items-center justify-between px-4 py-2 border-b border-border bg-muted/30">
             <div className="flex items-center gap-2">
               <Checkbox
-                checked={notifications.length > 0 && notifications.every(n => selectedIds.has(n.id))}
+                checked={displayNotifications.length > 0 && displayNotifications.every(n => selectedIds.has(n.id))}
                 onCheckedChange={() => {
-                  const allSelected = notifications.every(n => selectedIds.has(n.id));
-                  notifications.forEach(n => {
+                  const allSelected = displayNotifications.every(n => selectedIds.has(n.id));
+                  displayNotifications.forEach(n => {
                     if (allSelected) {
                       if (selectedIds.has(n.id)) toggleSelection(n.id);
                     } else {
@@ -156,7 +157,7 @@ function NotificationsDropdownComponent({ className }: NotificationsDropdownProp
               />
               <span className="text-sm text-muted-foreground">
                 {selectedCount > 0 
-                  ? `${selectedCount} de ${notifications.length} seleccionadas` 
+                  ? `${selectedCount} seleccionadas` 
                   : 'Seleccionar todas'}
               </span>
             </div>
@@ -194,14 +195,14 @@ function NotificationsDropdownComponent({ className }: NotificationsDropdownProp
             <div className="flex items-center justify-center h-[200px]">
               <Loader2 className="h-6 w-6 text-primary animate-spin" />
             </div>
-          ) : notifications.length === 0 ? (
+          ) : displayNotifications.length === 0 ? (
             <div className="flex flex-col items-center justify-center h-[200px] text-muted-foreground">
               <Bell className="h-10 w-10 mb-2 opacity-50" />
               <p className="text-sm">No hay notificaciones</p>
             </div>
           ) : (
             <div className="divide-y divide-border">
-              {notifications.map((notification, index) => {
+              {displayNotifications.map((notification, index) => {
                 const isSelected = selectedIds.has(notification.id);
                 const isUnread = !notification.read;
                 const timeAgo = formatDistanceToNow(new Date(notification.created_at), { 
@@ -284,7 +285,7 @@ function NotificationsDropdownComponent({ className }: NotificationsDropdownProp
         </ScrollArea>
         
         {/* Footer - Solo mostrar si hay notificaciones */}
-        {notifications.length > 0 && (
+        {displayNotifications.length > 0 && (
           <>
             <Separator />
             <button

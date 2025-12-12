@@ -5,7 +5,7 @@ import { NotificationTabs } from './NotificationTabs';
 import { NotificationSelectAll } from './NotificationSelectAll';
 import { NotificationList } from './NotificationList';
 import { DataTablePagination } from '@/components/ui/data-table-pagination';
-import { useNotifications } from '@/hooks/controlador/useNotifications';
+import { useNotificationsContext } from '@/contexts/NotificationsContext';
 import { cn } from '@/lib/utils';
 import { useOptimizedComponent } from '@/hooks/optimizacion';
 
@@ -34,10 +34,9 @@ function NotificationsPanelComponent({ className }: NotificationsPanelProps) {
     deleteNotifications,
     deleteSelected,
     isLoading,
-    isFetching,
-    onPageChange,
-    onPageSizeChange,
-  } = useNotifications({ pageSize: 10 });
+    setCurrentPage,
+    setPageSize,
+  } = useNotificationsContext();
   
   useOptimizedComponent({ filter, selectedCount }, { componentName: 'NotificationsPanel' });
   
@@ -99,7 +98,7 @@ function NotificationsPanelComponent({ className }: NotificationsPanelProps) {
         onToggleSelection={toggleSelection}
         onDelete={handleDelete}
         onMarkAsRead={handleMarkSingleAsRead}
-        isLoading={isFetching}
+        isLoading={isLoading}
       />
       
       {/* Pagination */}
@@ -109,8 +108,8 @@ function NotificationsPanelComponent({ className }: NotificationsPanelProps) {
           totalPages={totalPages}
           pageSize={pageSize}
           totalItems={totalItems}
-          onPageChange={onPageChange}
-          onPageSizeChange={onPageSizeChange}
+          onPageChange={setCurrentPage}
+          onPageSizeChange={setPageSize}
         />
       )}
     </div>
