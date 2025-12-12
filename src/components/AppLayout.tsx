@@ -8,6 +8,7 @@ import { LoadingScreen } from "@/components/LoadingScreen";
 import { PageHeader } from "@/components/PageHeader";
 import { useUserPresence } from "@/hooks/messages/useUserPresence";
 import { AssistantButton } from "@/components/asistente";
+import { NotificationPermissionPrompt } from "@/components/notifications";
 
 // Memorizar componentes que no deben re-renderizarse
 const MemoizedAppSidebar = memo(AppSidebar);
@@ -68,6 +69,13 @@ function LayoutContent() {
         </main>
       </SidebarInset>
       <AssistantButton />
+      <NotificationPermissionPrompt 
+        variant="banner" 
+        delay={5000} 
+        onPermissionChange={(granted) => {
+          console.log('[Notifications] Permiso:', granted ? 'concedido' : 'denegado');
+        }}
+      />
     </div>
   );
 }
