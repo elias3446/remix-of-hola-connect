@@ -1,0 +1,15 @@
+export { DashboardView } from './DashboardView';
+export { DashboardStats } from './DashboardStats';
+export { DashboardCharts } from './DashboardCharts';
+export { DetailedAnalysisTabs } from './DetailedAnalysisTabs';
+export { ReportesStatistics } from './ReportesStatistics';
+export { ReportesComparativeAnalysis } from './ReportesComparativeAnalysis';
+export { UsuariosStatistics } from './UsuariosStatistics';
+export { UsuariosComparativeAnalysis } from './UsuariosComparativeAnalysis';
+export { RolesStatistics } from './RolesStatistics';
+export { RolesComparativeAnalysis } from './RolesComparativeAnalysis';
+export { CategoriasStatistics } from './CategoriasStatistics';
+export { CategoriasComparativeAnalysis } from './CategoriasComparativeAnalysis';
+export { TiposStatistics } from './TiposStatistics';
+export { TiposComparativeAnalysis } from './TiposComparativeAnalysis';
+export { TrendingDashboard } from './TrendingDashboard';
