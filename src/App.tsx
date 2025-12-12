@@ -8,7 +8,7 @@ import { LocationProvider } from "@/contexts/LocationContext";
 import { UserPresenceProvider } from "@/contexts/UserPresenceContext";
 import { NearbyReportNotificationsProvider } from "@/contexts/NearbyReportNotificationsContext";
 import { ThemeProvider } from "@/contexts/ThemeContext";
-import { ThemeSync } from "@/components/ThemeSync";
+
 import Index from "./pages/Index";
 import Login from "./pages/Login";
 import ForgotPassword from "./pages/ForgotPassword";
@@ -73,7 +73,6 @@ const App = () => (
             <UserPresenceProvider>
               <LocationProvider>
                 <NearbyReportNotificationsProvider>
-                  <ThemeSync />
                   <Toaster />
                   <Sonner />
                   <Routes>

@@ -9,6 +9,7 @@ import { PageHeader } from "@/components/PageHeader";
 import { useUserPresence } from "@/hooks/messages/useUserPresence";
 import { AssistantButton } from "@/components/asistente";
 import { NotificationPermissionPrompt } from "@/components/notifications";
+import { ThemeSync } from "@/components/ThemeSync";
 
 // Memorizar componentes que no deben re-renderizarse
 const MemoizedAppSidebar = memo(AppSidebar);
@@ -60,8 +61,10 @@ function LayoutContent() {
   }
 
   return (
-    <div className="flex min-h-svh w-full">
-      <MemoizedAppSidebar />
+    <>
+      <ThemeSync />
+      <div className="flex min-h-svh w-full">
+        <MemoizedAppSidebar />
       <SidebarInset className="flex flex-col flex-1 h-svh overflow-hidden">
         <MemoizedPageHeader />
         <main className="flex-1 overflow-hidden">
@@ -69,14 +72,15 @@ function LayoutContent() {
         </main>
       </SidebarInset>
       <AssistantButton />
-      <NotificationPermissionPrompt 
-        variant="banner" 
-        delay={5000} 
-        onPermissionChange={(granted) => {
-          console.log('[Notifications] Permiso:', granted ? 'concedido' : 'denegado');
-        }}
-      />
-    </div>
+        <NotificationPermissionPrompt 
+          variant="banner" 
+          delay={5000} 
+          onPermissionChange={(granted) => {
+            console.log('[Notifications] Permiso:', granted ? 'concedido' : 'denegado');
+          }}
+        />
+      </div>
+    </>
   );
 }
 
