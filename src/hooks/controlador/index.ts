@@ -26,6 +26,7 @@ export { useCloudinaryUpload, type CloudinaryUploadResult, type UploadProgress, 
 export { useBulkResendConfirmation } from './useBulkResendConfirmation';
 export { useNotifications, type NotificationFilter, type NotificationStats, type UseNotificationsOptions, type UseNotificationsReturn } from './useNotifications';
 export { useNotificationCount } from './useNotificationCount';
+export { useNotificationSync, emitNotificationEvent } from './useNotificationSync';
 export { useBulkActions, type BulkActionConfig, type BulkActionsResult, type BulkActionType } from './useBulkActions';
 export { useBulkUpload, type BulkUploadConfig, type BulkUploadRow, type BulkUploadStats, type FieldConfig, type RowStatus, type EntityType, type UseBulkUploadReturn } from './useBulkUpload';
 export { useDashboardStats, type DashboardStats, type ChartDataPoint, type StatusDistribution, type PriorityDistribution, type RoleDistribution, type UseDashboardStatsReturn } from './useDashboardStats';

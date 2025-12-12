@@ -114,9 +114,10 @@ export function useNotifications(options: UseNotificationsOptions = {}): UseNoti
           filter: `user_id=eq.${profileId}`,
         },
         (payload) => {
-          // Invalidar inmediatamente para refetch rápido
-          queryClient.invalidateQueries({ queryKey: ['notifications'] });
-          queryClient.invalidateQueries({ queryKey: ['notifications-stats'] });
+          // Invalidar todas las queries para sincronización
+          queryClient.invalidateQueries({ queryKey: ['notifications'], refetchType: 'all' });
+          queryClient.invalidateQueries({ queryKey: ['notifications-stats'], refetchType: 'all' });
+          queryClient.invalidateQueries({ queryKey: ['notification-count'], refetchType: 'all' });
           
           // Show toast for new notifications only
           if (payload.eventType === 'INSERT') {
@@ -270,8 +271,9 @@ export function useNotifications(options: UseNotificationsOptions = {}): UseNoti
       }
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['notifications'] });
-      queryClient.invalidateQueries({ queryKey: ['notifications-stats'] });
+      queryClient.invalidateQueries({ queryKey: ['notifications'], refetchType: 'all' });
+      queryClient.invalidateQueries({ queryKey: ['notifications-stats'], refetchType: 'all' });
+      queryClient.invalidateQueries({ queryKey: ['notification-count'], refetchType: 'all' });
       toast({ 
         title: autoDeleteRead 
           ? 'Notificaciones eliminadas automáticamente' 
@@ -310,8 +312,9 @@ export function useNotifications(options: UseNotificationsOptions = {}): UseNoti
       }
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['notifications'] });
-      queryClient.invalidateQueries({ queryKey: ['notifications-stats'] });
+      queryClient.invalidateQueries({ queryKey: ['notifications'], refetchType: 'all' });
+      queryClient.invalidateQueries({ queryKey: ['notifications-stats'], refetchType: 'all' });
+      queryClient.invalidateQueries({ queryKey: ['notification-count'], refetchType: 'all' });
       toast({ 
         title: autoDeleteRead 
           ? 'Todas las notificaciones eliminadas automáticamente' 
@@ -377,9 +380,10 @@ export function useNotifications(options: UseNotificationsOptions = {}): UseNoti
     },
     onSuccess: (ids) => {
       toast({ title: `${ids.length} notificación(es) eliminada(s)` });
-      // Invalidar TODAS las queries de notificaciones (diferentes instancias con diferentes pageSize/filter)
+      // Invalidar TODAS las queries de notificaciones
       queryClient.invalidateQueries({ queryKey: ['notifications'], refetchType: 'all' });
       queryClient.invalidateQueries({ queryKey: ['notifications-stats'], refetchType: 'all' });
+      queryClient.invalidateQueries({ queryKey: ['notification-count'], refetchType: 'all' });
     },
     onError: (error, _, context) => {
       // Rollback on error
@@ -457,8 +461,9 @@ export function useNotifications(options: UseNotificationsOptions = {}): UseNoti
         return;
       }
       
-      queryClient.invalidateQueries({ queryKey: ['notifications'] });
-      queryClient.invalidateQueries({ queryKey: ['notifications-stats'] });
+      queryClient.invalidateQueries({ queryKey: ['notifications'], refetchType: 'all' });
+      queryClient.invalidateQueries({ queryKey: ['notifications-stats'], refetchType: 'all' });
+      queryClient.invalidateQueries({ queryKey: ['notification-count'], refetchType: 'all' });
       clearSelection();
       toast({ title: 'Notificaciones marcadas como leídas' });
     } else if (selectedIds.size > 0) {
@@ -506,15 +511,17 @@ export function useNotifications(options: UseNotificationsOptions = {}): UseNoti
       if (error) {
         toast({ title: 'Error', description: 'No se pudieron eliminar las notificaciones', variant: 'destructive' });
         // Refetch to restore state
-        queryClient.invalidateQueries({ queryKey: ['notifications'] });
-        queryClient.invalidateQueries({ queryKey: ['notifications-stats'] });
+        queryClient.invalidateQueries({ queryKey: ['notifications'], refetchType: 'all' });
+        queryClient.invalidateQueries({ queryKey: ['notifications-stats'], refetchType: 'all' });
+        queryClient.invalidateQueries({ queryKey: ['notification-count'], refetchType: 'all' });
         return;
       }
       
       toast({ title: 'Todas las notificaciones eliminadas' });
       // Refetch to ensure consistency
-      queryClient.invalidateQueries({ queryKey: ['notifications'] });
-      queryClient.invalidateQueries({ queryKey: ['notifications-stats'] });
+      queryClient.invalidateQueries({ queryKey: ['notifications'], refetchType: 'all' });
+      queryClient.invalidateQueries({ queryKey: ['notifications-stats'], refetchType: 'all' });
+      queryClient.invalidateQueries({ queryKey: ['notification-count'], refetchType: 'all' });
     } else if (selectedIds.size > 0) {
       await deleteNotificationsMutation.mutateAsync(Array.from(selectedIds));
     }
