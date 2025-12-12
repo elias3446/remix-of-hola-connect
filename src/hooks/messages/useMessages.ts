@@ -137,7 +137,7 @@ export function useMessages(options: UseMessagesOptions): UseMessagesReturn {
     enabled: enabled && !!conversationId && !!currentProfileId,
   });
 
-  // Suscripción en tiempo real a nuevos mensajes
+  // Suscripción en tiempo real a nuevos mensajes y receipts
   useEffect(() => {
     if (!conversationId || !enabled) return;
 
@@ -195,6 +195,19 @@ export function useMessages(options: UseMessagesOptions): UseMessagesReturn {
           queryClient.invalidateQueries({ queryKey: ['messages', conversationId] });
         }
       )
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'message_receipts',
+        },
+        (payload) => {
+          // Refrescar cuando hay cambios en receipts (estados de mensaje)
+          console.log('Realtime RECEIPT change:', payload);
+          queryClient.invalidateQueries({ queryKey: ['messages', conversationId] });
+        }
+      )
       .subscribe((status) => {
         console.log('Realtime subscription status:', status);
       });
@@ -229,10 +242,7 @@ export function useMessages(options: UseMessagesOptions): UseMessagesReturn {
         .update({ updated_at: new Date().toISOString() })
         .eq('id', conversationId);
 
-      // Marcar mensajes como entregados
-      await supabase.rpc('mark_messages_delivered', {
-        p_conversation_id: conversationId,
-      });
+      // NO marcar como entregado aquí - eso lo hace el receptor cuando está en línea
 
       return true;
     },
