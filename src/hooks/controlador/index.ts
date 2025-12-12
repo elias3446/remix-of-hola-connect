@@ -44,3 +44,4 @@ export { useCreatePublicacion, usePublicacionInteractions as usePublicacionInter
 export { useAutoShareReport } from './useAutoShareReport';
 export { usePostViews, useRegisterPostView, clearPostViewsCache, prefetchPostViews } from './usePostViews';
 export { usePublicacionInteractions, prefetchPublicacionInteractions, clearInteractionsCache } from './usePublicacionInteractions';
+export { usePushNotifications, type NotificationPermissionState } from './usePushNotifications';
