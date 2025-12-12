@@ -82,12 +82,6 @@ export const requestNotificationPermission = async (): Promise<boolean> => {
 const showConsolidatedNativeNotification = (
   reports: NearbyReportData[]
 ) => {
-  // Solo mostrar push si la página NO está visible (segundo plano)
-  if (isPageVisible()) {
-    console.log('[Push] Página visible, omitiendo notificación push');
-    return;
-  }
-
   if (Notification.permission !== "granted" || reports.length === 0) return;
 
   try {
@@ -223,14 +217,7 @@ export function useNearbyReportNotifications() {
   );
 
   // Mostrar toast consolidado con todos los reportes cercanos
-  // SOLO se muestra cuando la página está en PRIMER PLANO (visible)
   const showConsolidatedToast = useCallback((reports: NearbyReportData[]) => {
-    // Solo mostrar toast si la página está visible (primer plano)
-    if (!isPageVisible()) {
-      console.log('[Toast] Página en segundo plano, omitiendo toast in-app');
-      return;
-    }
-
     if (reports.length === 0) return;
 
     // Ordenar por distancia (más cercano primero)
@@ -306,10 +293,15 @@ export function useNearbyReportNotifications() {
       pendingReportsRef.current.reports = [];
       
       if (reportsToShow.length > 0) {
-        // Mostrar toast consolidado
-        showConsolidatedToast(reportsToShow);
-        // Mostrar notificación push nativa consolidada
-        showConsolidatedNativeNotification(reportsToShow);
+        // Verificar visibilidad EN EL MOMENTO de mostrar (no antes)
+        // Solo mostrar UNA de las dos opciones, NUNCA ambas
+        if (isPageVisible()) {
+          // Página visible: solo toast in-app
+          showConsolidatedToast(reportsToShow);
+        } else {
+          // Página en segundo plano: solo notificación push nativa
+          showConsolidatedNativeNotification(reportsToShow);
+        }
       }
     }, 500);
   }, [showConsolidatedToast]);
