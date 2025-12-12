@@ -8,3 +8,4 @@ export { NotificationItem } from './NotificationItem';
 export { NotificationList } from './NotificationList';
 export { NearbyReportToast } from './NearbyReportToast';
 export { NearbyReportsGroupToast, type NearbyReportData } from './NearbyReportsGroupToast';
+export { NotificationPermissionPrompt } from './NotificationPermissionPrompt';
