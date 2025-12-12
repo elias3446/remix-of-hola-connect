@@ -56,15 +56,33 @@ export function usePushNotifications(): UsePushNotificationsReturn {
 
       console.log('[Push] Service Worker registrado:', registration.scope);
 
-      // Esperar a que el SW esté activo
+      // Esperar a que el SW esté activo (con timeout para evitar bloqueos)
       if (registration.installing) {
-        await new Promise<void>((resolve) => {
-          registration.installing?.addEventListener('statechange', (e) => {
-            if ((e.target as ServiceWorker).state === 'activated') {
+        await Promise.race([
+          new Promise<void>((resolve) => {
+            const installingWorker = registration.installing;
+            if (!installingWorker) {
+              resolve();
+              return;
+            }
+            
+            const handleStateChange = () => {
+              if (installingWorker.state === 'activated' || installingWorker.state === 'redundant') {
+                installingWorker.removeEventListener('statechange', handleStateChange);
+                resolve();
+              }
+            };
+            
+            installingWorker.addEventListener('statechange', handleStateChange);
+            
+            // Si ya está activado, resolver inmediatamente
+            if (installingWorker.state === 'activated') {
               resolve();
             }
-          });
-        });
+          }),
+          // Timeout de 5 segundos para evitar bloqueos indefinidos
+          new Promise<void>((resolve) => setTimeout(resolve, 5000))
+        ]);
       }
 
       setState(prev => ({
