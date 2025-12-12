@@ -98,7 +98,8 @@ Para AYUDA, sé conciso y claro.
 
 Responde siempre en español y mantén un tono profesional pero amigable.`;
 
-const CHAT_URL = 'https://ai.gateway.lovable.dev/v1/chat/completions';
+const GEMINI_API_KEY = import.meta.env.VITE_GEMINI_API_KEY || '';
+const GEMINI_API_URL = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:streamGenerateContent';
 
 export function useAssistant(): UseAssistantReturn {
   const [messages, setMessages] = useState<Message[]>([]);
@@ -155,6 +156,11 @@ ${stats ? `
       return;
     }
 
+    if (!GEMINI_API_KEY) {
+      toast.error('API key de Gemini no configurada');
+      return;
+    }
+
     // Create user message
     const userMessage: Message = {
       id: crypto.randomUUID(),
@@ -180,40 +186,50 @@ ${stats ? `
     abortControllerRef.current = new AbortController();
 
     try {
-      // Build messages for API including conversation history
-      const apiMessages = [
-        { role: 'system', content: SYSTEM_PROMPT },
-        { role: 'system', content: buildSystemContext() },
-        ...messages.map(m => ({ role: m.role, content: m.content })),
-        { role: 'user', content },
-      ];
+      // Build conversation history for Gemini format
+      const conversationHistory = messages.map(m => ({
+        role: m.role === 'user' ? 'user' : 'model',
+        parts: [{ text: m.content }],
+      }));
 
-      const response = await fetch(CHAT_URL, {
+      // Gemini API request body
+      const requestBody = {
+        systemInstruction: {
+          parts: [{ text: SYSTEM_PROMPT + '\n\n' + buildSystemContext() }],
+        },
+        contents: [
+          ...conversationHistory,
+          {
+            role: 'user',
+            parts: [{ text: content }],
+          },
+        ],
+        generationConfig: {
+          temperature: 0.7,
+          maxOutputTokens: 4096,
+          topP: 0.95,
+          topK: 40,
+        },
+      };
+
+      const response = await fetch(`${GEMINI_API_URL}?key=${GEMINI_API_KEY}&alt=sse`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          Authorization: `Bearer ${import.meta.env.VITE_LOVABLE_API_KEY || ''}`,
         },
-        body: JSON.stringify({
-          model: 'google/gemini-2.5-flash',
-          messages: apiMessages,
-          stream: true,
-          temperature: 0.7,
-          max_tokens: 4096,
-        }),
+        body: JSON.stringify(requestBody),
         signal: abortControllerRef.current.signal,
       });
 
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({}));
+        console.error('[Gemini API Error]', errorData);
         if (response.status === 429) {
           toast.error('Límite de solicitudes excedido. Intenta más tarde.');
-        } else if (response.status === 402) {
-          toast.error('Créditos insuficientes. Contacta al administrador.');
-        } else if (response.status === 401) {
-          toast.error('API key no configurada. Agrega VITE_LOVABLE_API_KEY en .env');
+        } else if (response.status === 403) {
+          toast.error('API key inválida o sin permisos.');
         } else {
-          toast.error(errorData.error || 'Error al comunicarse con el asistente');
+          toast.error(errorData.error?.message || 'Error al comunicarse con Gemini');
         }
         setMessages(prev => prev.filter(m => m.id !== assistantMessageId));
         return;
@@ -234,14 +250,14 @@ ${stats ? `
 
         textBuffer += decoder.decode(value, { stream: true });
 
-        // Process line by line
+        // Process SSE lines
         let newlineIndex: number;
         while ((newlineIndex = textBuffer.indexOf('\n')) !== -1) {
           let line = textBuffer.slice(0, newlineIndex);
           textBuffer = textBuffer.slice(newlineIndex + 1);
 
           if (line.endsWith('\r')) line = line.slice(0, -1);
-          if (line.startsWith(':') || line.trim() === '') continue;
+          if (line.trim() === '' || line.startsWith(':')) continue;
           if (!line.startsWith('data: ')) continue;
 
           const jsonStr = line.slice(6).trim();
@@ -249,9 +265,10 @@ ${stats ? `
 
           try {
             const parsed = JSON.parse(jsonStr);
-            const deltaContent = parsed.choices?.[0]?.delta?.content as string | undefined;
-            if (deltaContent) {
-              fullContent += deltaContent;
+            // Gemini streaming response format
+            const textPart = parsed.candidates?.[0]?.content?.parts?.[0]?.text;
+            if (textPart) {
+              fullContent += textPart;
               setMessages(prev => prev.map(m => 
                 m.id === assistantMessageId 
                   ? { ...m, content: fullContent }
@@ -259,8 +276,7 @@ ${stats ? `
               ));
             }
           } catch {
-            textBuffer = line + '\n' + textBuffer;
-            break;
+            // Incomplete JSON, continue
           }
         }
       }
