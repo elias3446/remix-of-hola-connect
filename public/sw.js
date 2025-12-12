@@ -1,12 +1,10 @@
 /// <reference lib="webworker" />
 
 const CACHE_NAME = 'unialerta-v1';
-const OFFLINE_URL = '/offline.html';
 
-// Archivos a cachear para funcionamiento offline
+// Archivos a cachear para funcionamiento offline (solo archivos que existen)
 const STATIC_CACHE = [
   '/',
-  '/index.html',
   '/manifest.json'
 ];
 
@@ -16,7 +14,10 @@ self.addEventListener('install', (event) => {
   event.waitUntil(
     caches.open(CACHE_NAME).then((cache) => {
       console.log('[SW] Caching static assets');
-      return cache.addAll(STATIC_CACHE);
+      // Usar addAll con catch para evitar fallos si algún archivo no existe
+      return cache.addAll(STATIC_CACHE).catch((err) => {
+        console.warn('[SW] Some assets failed to cache:', err);
+      });
     })
   );
   self.skipWaiting();
