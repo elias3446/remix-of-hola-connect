@@ -293,14 +293,12 @@ export function useNearbyReportNotifications() {
       pendingReportsRef.current.reports = [];
       
       if (reportsToShow.length > 0) {
-        // Verificar visibilidad EN EL MOMENTO de mostrar (no antes)
-        // Solo mostrar UNA de las dos opciones, NUNCA ambas
+        // Siempre mostrar notificación push nativa
+        showConsolidatedNativeNotification(reportsToShow);
+        
+        // Además, mostrar toast in-app si la página está visible
         if (isPageVisible()) {
-          // Página visible: solo toast in-app
           showConsolidatedToast(reportsToShow);
-        } else {
-          // Página en segundo plano: solo notificación push nativa
-          showConsolidatedNativeNotification(reportsToShow);
         }
       }
     }, 500);
