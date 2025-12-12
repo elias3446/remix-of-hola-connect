@@ -1,4 +1,5 @@
 import { createContext, useContext, useState, useEffect, useCallback, ReactNode } from 'react';
+import { useLocation } from 'react-router-dom';
 
 type Theme = 'light' | 'dark' | 'system';
 
@@ -14,6 +15,9 @@ const ThemeContext = createContext<ThemeContextType | null>(null);
 // Key para localStorage (sincronizada con useUserDataReady)
 const THEME_STORAGE_KEY = 'user_cache:theme';
 const THEME_TIMESTAMP_KEY = 'user_cache:theme_timestamp';
+
+// Rutas públicas que siempre usan tema claro
+const PUBLIC_ROUTES = ['/', '/login', '/forgot-password', '/change-password'];
 
 /**
  * Obtiene el tema del sistema operativo
@@ -73,27 +77,22 @@ function storeTheme(theme: Theme) {
  * Provider de tema que gestiona el tema de la aplicación
  * 
  * Flujo:
- * 1. Al iniciar, carga el tema desde localStorage (instantáneo, evita flash)
- * 2. Cuando useUserDataReady obtiene settings, actualiza el tema si es diferente
- * 3. Los cambios de tema se persisten en localStorage para próximas cargas
+ * 1. Rutas públicas (login, register, etc.) SIEMPRE usan tema claro
+ * 2. Para rutas protegidas, usa el tema guardado en localStorage
+ * 3. El tema del usuario se sincroniza DESPUÉS del login via ThemeSync
  */
 export function ThemeProvider({ children }: { children: ReactNode }) {
+  // Estado interno del tema (solo se usa en rutas protegidas)
   const [theme, setThemeState] = useState<Theme>(() => {
-    // Inicializar con el tema de localStorage o system
     return getStoredTheme() || 'system';
   });
-  const [resolvedTheme, setResolvedTheme] = useState<'light' | 'dark'>(() => {
-    const initialTheme = getStoredTheme() || 'system';
-    return resolveTheme(initialTheme);
-  });
+  const [resolvedTheme, setResolvedTheme] = useState<'light' | 'dark'>('light');
   const [isLoading, setIsLoading] = useState(true);
 
-  // Aplicar tema al montar (sincrónico para evitar flash)
+  // Aplicar tema claro inicialmente (para evitar flash en login)
   useEffect(() => {
-    const storedTheme = getStoredTheme() || 'system';
-    const resolved = resolveTheme(storedTheme);
-    applyThemeToDocument(resolved);
-    setResolvedTheme(resolved);
+    applyThemeToDocument('light');
+    setResolvedTheme('light');
     setIsLoading(false);
   }, []);
 
