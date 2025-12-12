@@ -470,10 +470,8 @@ export function useNearbyReportNotifications() {
       return;
     }
 
-    // Solicitar permisos de notificación si no se han solicitado
-    if (notificationPermission === null || notificationPermission === "default") {
-      requestPermission();
-    }
+    // NOTA: No solicitar permisos automáticamente - debe ser en respuesta a un gesto del usuario
+    // El componente NotificationPermissionPrompt se encarga de esto correctamente
 
     // Verificación periódica cada 30 segundos usando locationRef para obtener ubicación actualizada
     if (!checkIntervalRef.current) {
