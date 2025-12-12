@@ -7,6 +7,7 @@ import { useUserDataReady } from "@/hooks/entidades";
 import { LoadingScreen } from "@/components/LoadingScreen";
 import { PageHeader } from "@/components/PageHeader";
 import { useUserPresence } from "@/hooks/messages/useUserPresence";
+import { AssistantButton } from "@/components/asistente";
 
 // Memorizar componentes que no deben re-renderizarse
 const MemoizedAppSidebar = memo(AppSidebar);
@@ -66,6 +67,7 @@ function LayoutContent() {
           <Outlet />
         </main>
       </SidebarInset>
+      <AssistantButton />
     </div>
   );
 }
