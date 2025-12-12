@@ -48,6 +48,13 @@ interface PendingReportsBuffer {
 }
 
 /**
+ * Detecta si la página está visible (primer plano) o no (segundo plano)
+ */
+const isPageVisible = (): boolean => {
+  return document.visibilityState === 'visible';
+};
+
+/**
  * Solicita permisos de notificación al navegador
  */
 export const requestNotificationPermission = async (): Promise<boolean> => {
@@ -69,11 +76,18 @@ export const requestNotificationPermission = async (): Promise<boolean> => {
 };
 
 /**
- * Muestra una notificación nativa consolidada del sistema operativo
+ * Muestra una notificación push nativa del sistema operativo.
+ * SOLO se muestra cuando la página está en SEGUNDO PLANO (otra pestaña, minimizado, etc.)
  */
 const showConsolidatedNativeNotification = (
   reports: NearbyReportData[]
 ) => {
+  // Solo mostrar push si la página NO está visible (segundo plano)
+  if (isPageVisible()) {
+    console.log('[Push] Página visible, omitiendo notificación push');
+    return;
+  }
+
   if (Notification.permission !== "granted" || reports.length === 0) return;
 
   try {
@@ -115,6 +129,8 @@ const showConsolidatedNativeNotification = (
       }
       notification.close();
     };
+    
+    console.log('[Push] Notificación push mostrada en segundo plano');
   } catch (error) {
     console.error("Error mostrando notificación nativa consolidada:", error);
   }
@@ -207,7 +223,14 @@ export function useNearbyReportNotifications() {
   );
 
   // Mostrar toast consolidado con todos los reportes cercanos
+  // SOLO se muestra cuando la página está en PRIMER PLANO (visible)
   const showConsolidatedToast = useCallback((reports: NearbyReportData[]) => {
+    // Solo mostrar toast si la página está visible (primer plano)
+    if (!isPageVisible()) {
+      console.log('[Toast] Página en segundo plano, omitiendo toast in-app');
+      return;
+    }
+
     if (reports.length === 0) return;
 
     // Ordenar por distancia (más cercano primero)
@@ -240,6 +263,8 @@ export function useNearbyReportNotifications() {
         className: "nearby-reports-consolidated-toast",
       }
     );
+    
+    console.log('[Toast] Toast in-app mostrado en primer plano');
   }, []);
 
   // Agregar reporte al buffer y programar notificaciones consolidadas
