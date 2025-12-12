@@ -1,4 +1,4 @@
-import { useState, useCallback, useRef } from 'react';
+import { useState, useCallback, useRef, useEffect } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useOptimizedUserRoles } from '@/hooks/entidades/useOptimizedUserRoles';
 import { useOptimizedReportes } from '@/hooks/entidades/useOptimizedReportes';
@@ -30,6 +30,33 @@ interface UseAssistantReturn {
   clearMessages: () => void;
   stopGeneration: () => void;
 }
+
+const STORAGE_KEY = 'unialerta_assistant_messages';
+
+// Load messages from localStorage
+const loadMessagesFromStorage = (): Message[] => {
+  try {
+    const stored = localStorage.getItem(STORAGE_KEY);
+    if (!stored) return [];
+    const parsed = JSON.parse(stored);
+    return parsed.map((m: Message) => ({
+      ...m,
+      timestamp: new Date(m.timestamp),
+    }));
+  } catch {
+    return [];
+  }
+};
+
+// Save messages to localStorage
+const saveMessagesToStorage = (messages: Message[]) => {
+  try {
+    const toSave = messages.filter(m => !m.isStreaming);
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(toSave));
+  } catch (error) {
+    console.error('[useAssistant] Error saving to localStorage:', error);
+  }
+};
 
 // System prompt completo para el asistente UniAlerta UCE
 const SYSTEM_PROMPT = `Eres el Asistente Integral de UniAlerta UCE, una plataforma de gestión de reportes e incidentes para la Universidad Central del Ecuador.
@@ -96,13 +123,16 @@ Para OPERACIONES CRUD, responde en JSON estructurado:
 Para ANÁLISIS, usa formato libre con Markdown.
 Para AYUDA, sé conciso y claro.
 
-Responde siempre en español y mantén un tono profesional pero amigable.`;
+Responde siempre en español y mantén un tono profesional pero amigable.
+
+## MEMORIA DE CONVERSACIÓN
+Tienes acceso al historial completo de mensajes previos. Úsalo para dar respuestas contextuales y recordar lo que el usuario ha discutido anteriormente.`;
 
 const GEMINI_API_KEY = import.meta.env.VITE_GEMINI_API_KEY || '';
 const GEMINI_API_URL = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:streamGenerateContent';
 
 export function useAssistant(): UseAssistantReturn {
-  const [messages, setMessages] = useState<Message[]>([]);
+  const [messages, setMessages] = useState<Message[]>(() => loadMessagesFromStorage());
   const [isLoading, setIsLoading] = useState(false);
   const { user } = useAuth();
   const { data: userRoles } = useOptimizedUserRoles();
@@ -112,6 +142,11 @@ export function useAssistant(): UseAssistantReturn {
   const { data: usuarios = [] } = useOptimizedUsers();
   const { stats, statusDistribution, priorityDistribution, rolesDistribution } = useDashboardStats();
   const abortControllerRef = useRef<AbortController | null>(null);
+
+  // Persist messages to localStorage whenever they change
+  useEffect(() => {
+    saveMessagesToStorage(messages);
+  }, [messages]);
 
   // Build system context with current data
   const buildSystemContext = useCallback(() => {
@@ -186,8 +221,9 @@ ${stats ? `
     abortControllerRef.current = new AbortController();
 
     try {
-      // Build conversation history for Gemini format
-      const conversationHistory = messages.map(m => ({
+      // Build conversation history for Gemini format (include ALL previous messages for memory)
+      const currentMessages = [...messages, userMessage];
+      const conversationHistory = currentMessages.map(m => ({
         role: m.role === 'user' ? 'user' : 'model',
         parts: [{ text: m.content }],
       }));
@@ -197,13 +233,7 @@ ${stats ? `
         systemInstruction: {
           parts: [{ text: SYSTEM_PROMPT + '\n\n' + buildSystemContext() }],
         },
-        contents: [
-          ...conversationHistory,
-          {
-            role: 'user',
-            parts: [{ text: content }],
-          },
-        ],
+        contents: conversationHistory,
         generationConfig: {
           temperature: 0.7,
           maxOutputTokens: 4096,
@@ -307,6 +337,7 @@ ${stats ? `
 
   const clearMessages = useCallback(() => {
     setMessages([]);
+    localStorage.removeItem(STORAGE_KEY);
   }, []);
 
   const stopGeneration = useCallback(() => {
