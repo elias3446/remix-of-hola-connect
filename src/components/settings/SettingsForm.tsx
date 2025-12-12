@@ -4,6 +4,7 @@ import { useQueryClient } from '@tanstack/react-query';
 import { 
   Settings, 
   Bell, 
+  BellRing,
   MapPin, 
   Share2, 
   MessageSquare, 
@@ -13,7 +14,9 @@ import {
   Bot,
   Moon,
   Sun,
-  Monitor
+  Monitor,
+  CheckCircle2,
+  XCircle
 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { FormHeader } from '@/components/ui/form-header';
@@ -25,10 +28,12 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Input } from '@/components/ui/input';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Separator } from '@/components/ui/separator';
+import { Button } from '@/components/ui/button';
 import { LoadingScreen } from '@/components/LoadingScreen';
 import { useUserDataReady } from '@/hooks/entidades/useUserDataReady';
 import { useFormNavigation } from '@/hooks/controlador/useFormNavigation';
 import { useTheme } from '@/contexts/ThemeContext';
+import { usePushNotifications } from '@/hooks/controlador/usePushNotifications';
 import { 
   animationClasses, 
   transitionClasses, 
@@ -59,9 +64,11 @@ export function SettingsForm() {
   const { profile, settings: userSettings, isLoading: isLoadingData, isReady, userId } = useUserDataReady();
   const { setTheme } = useTheme();
   const queryClient = useQueryClient();
+  const { permission, isSupported, requestPermission } = usePushNotifications();
   
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [activeTab, setActiveTab] = useState('general');
+  const [isRequestingPermission, setIsRequestingPermission] = useState(false);
   
   // Estado del formulario
   const [formData, setFormData] = useState<Partial<Settings>>({
@@ -91,6 +98,27 @@ export function SettingsForm() {
     defaultBackRoute: DEFAULT_BACK_ROUTE,
   });
 
+  // Manejar solicitud de permisos de notificación push
+  const handleRequestPushPermission = async () => {
+    setIsRequestingPermission(true);
+    try {
+      // Limpiar flag de descarte para permitir que el prompt aparezca
+      localStorage.removeItem('notification_prompt_dismissed');
+      
+      const granted = await requestPermission();
+      if (granted) {
+        toast.success('Notificaciones push activadas correctamente');
+      } else {
+        toast.error('No se pudo activar las notificaciones push');
+      }
+    } catch (error) {
+      console.error('Error requesting permission:', error);
+      toast.error('Error al solicitar permisos');
+    } finally {
+      setIsRequestingPermission(false);
+    }
+  };
+
   // Cargar configuración existente
   useEffect(() => {
     if (userSettings) {
@@ -119,6 +147,11 @@ export function SettingsForm() {
     // Aplicar tema inmediatamente cuando se selecciona
     if (field === 'theme' && typeof value === 'string' && ['light', 'dark', 'system'].includes(value)) {
       setTheme(value as 'light' | 'dark' | 'system');
+    }
+    
+    // Si se activa el tracking en tiempo real, limpiar el flag de descarte del prompt
+    if (field === 'real_time_tracking_enabled' && value === true) {
+      localStorage.removeItem('notification_prompt_dismissed');
     }
   }, [setTheme]);
 
@@ -331,6 +364,53 @@ export function SettingsForm() {
                   </CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-6">
+                  {/* Notificaciones Push del navegador */}
+                  <div className="space-y-3">
+                    <div className="flex items-center justify-between">
+                      <div className="space-y-0.5">
+                        <Label className="text-sm font-medium flex items-center gap-2">
+                          <BellRing className="h-4 w-4 text-muted-foreground" />
+                          Notificaciones Push del navegador
+                        </Label>
+                        <p className="text-sm text-muted-foreground">
+                          Recibe alertas nativas del sistema operativo
+                        </p>
+                      </div>
+                      {permission === 'granted' ? (
+                        <div className="flex items-center gap-2 text-sm text-green-600 dark:text-green-400">
+                          <CheckCircle2 className="h-4 w-4" />
+                          Activadas
+                        </div>
+                      ) : permission === 'denied' ? (
+                        <div className="flex items-center gap-2 text-sm text-destructive">
+                          <XCircle className="h-4 w-4" />
+                          Bloqueadas
+                        </div>
+                      ) : (
+                        <Button
+                          type="button"
+                          size="sm"
+                          onClick={handleRequestPushPermission}
+                          disabled={isRequestingPermission || !isSupported}
+                        >
+                          {isRequestingPermission ? 'Activando...' : 'Activar'}
+                        </Button>
+                      )}
+                    </div>
+                    {permission === 'denied' && (
+                      <p className="text-xs text-muted-foreground bg-muted/50 p-2 rounded-md">
+                        Las notificaciones están bloqueadas. Para activarlas, haz clic en el icono de candado en la barra de direcciones del navegador y permite las notificaciones.
+                      </p>
+                    )}
+                    {!isSupported && (
+                      <p className="text-xs text-muted-foreground bg-muted/50 p-2 rounded-md">
+                        Tu navegador no soporta notificaciones push.
+                      </p>
+                    )}
+                  </div>
+
+                  <Separator />
+
                   {/* Auto eliminar leídas */}
                   <div className="flex items-center justify-between">
                     <div className="space-y-0.5">
