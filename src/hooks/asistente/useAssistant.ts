@@ -32,6 +32,7 @@ interface UseAssistantReturn {
 }
 
 const STORAGE_KEY = 'unialerta_assistant_messages';
+const CHAT_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/assistant-chat`;
 
 // Load messages from localStorage
 const loadMessagesFromStorage = (): Message[] => {
@@ -63,9 +64,7 @@ const getSystemPrompt = (roles: string[], permisos: string[]) => {
   const isAdmin = roles.includes('super_admin') || roles.includes('administrador');
   const isMantenimiento = roles.includes('mantenimiento');
   const isOperador = roles.includes('operador_analista') || roles.includes('seguridad_uce');
-  const isRegularUser = roles.includes('usuario_regular') || roles.includes('estudiante_personal') || roles.length === 0;
 
-  // Define accessible modules based on role
   let accessibleModules = '';
   let restrictions = '';
 
@@ -180,9 +179,6 @@ Responde siempre en español y mantén un tono profesional pero amigable.
 Tienes acceso al historial completo de mensajes previos. Úsalo para dar respuestas contextuales y recordar lo que el usuario ha discutido anteriormente.`;
 };
 
-const GEMINI_API_KEY = import.meta.env.VITE_GEMINI_API_KEY || '';
-const GEMINI_API_URL = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:streamGenerateContent';
-
 export function useAssistant(): UseAssistantReturn {
   const [messages, setMessages] = useState<Message[]>(() => loadMessagesFromStorage());
   const [isLoading, setIsLoading] = useState(false);
@@ -195,12 +191,10 @@ export function useAssistant(): UseAssistantReturn {
   const { stats, statusDistribution, priorityDistribution, rolesDistribution } = useDashboardStats();
   const abortControllerRef = useRef<AbortController | null>(null);
 
-  // Persist messages to localStorage whenever they change
   useEffect(() => {
     saveMessagesToStorage(messages);
   }, [messages]);
 
-  // Build system context with current data
   const buildSystemContext = useCallback(() => {
     const reportesActivos = reportes.filter(r => r.activo && !r.deleted_at);
     
@@ -243,12 +237,6 @@ ${stats ? `
       return;
     }
 
-    if (!GEMINI_API_KEY) {
-      toast.error('API key de Gemini no configurada');
-      return;
-    }
-
-    // Create user message
     const userMessage: Message = {
       id: crypto.randomUUID(),
       role: 'user',
@@ -259,7 +247,6 @@ ${stats ? `
     setMessages(prev => [...prev, userMessage]);
     setIsLoading(true);
 
-    // Create assistant message placeholder
     const assistantMessageId = crypto.randomUUID();
     setMessages(prev => [...prev, {
       id: assistantMessageId,
@@ -269,53 +256,43 @@ ${stats ? `
       isStreaming: true,
     }]);
 
-    // Setup abort controller
     abortControllerRef.current = new AbortController();
 
     try {
-      // Build conversation history for Gemini format (include ALL previous messages for memory)
       const currentMessages = [...messages, userMessage];
       const conversationHistory = currentMessages.map(m => ({
-        role: m.role === 'user' ? 'user' : 'model',
-        parts: [{ text: m.content }],
+        role: m.role as 'user' | 'assistant',
+        content: m.content,
       }));
 
-      // Gemini API request body with role-based system prompt
       const systemPrompt = getSystemPrompt(
         userRoles?.roles || [],
         userRoles?.permisos || []
-      );
-      const requestBody = {
-        systemInstruction: {
-          parts: [{ text: systemPrompt + '\n\n' + buildSystemContext() }],
-        },
-        contents: conversationHistory,
-        generationConfig: {
-          temperature: 0.7,
-          maxOutputTokens: 4096,
-          topP: 0.95,
-          topK: 40,
-        },
-      };
+      ) + '\n\n' + buildSystemContext();
 
-      const response = await fetch(`${GEMINI_API_URL}?key=${GEMINI_API_KEY}&alt=sse`, {
+      const response = await fetch(CHAT_URL, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
+          'Authorization': `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
         },
-        body: JSON.stringify(requestBody),
+        body: JSON.stringify({
+          messages: conversationHistory,
+          systemPrompt,
+        }),
         signal: abortControllerRef.current.signal,
       });
 
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({}));
-        console.error('[Gemini API Error]', errorData);
+        console.error('[Assistant API Error]', response.status, errorData);
+        
         if (response.status === 429) {
-          toast.error('Límite de solicitudes excedido. Intenta más tarde.');
-        } else if (response.status === 403) {
-          toast.error('API key inválida o sin permisos.');
+          toast.error('Límite de solicitudes excedido. Espera unos segundos e intenta de nuevo.');
+        } else if (response.status === 402) {
+          toast.error('Créditos de IA agotados. Contacta al administrador.');
         } else {
-          toast.error(errorData.error?.message || 'Error al comunicarse con Gemini');
+          toast.error(errorData.error || 'Error al comunicarse con el asistente');
         }
         setMessages(prev => prev.filter(m => m.id !== assistantMessageId));
         return;
@@ -336,7 +313,6 @@ ${stats ? `
 
         textBuffer += decoder.decode(value, { stream: true });
 
-        // Process SSE lines
         let newlineIndex: number;
         while ((newlineIndex = textBuffer.indexOf('\n')) !== -1) {
           let line = textBuffer.slice(0, newlineIndex);
@@ -351,8 +327,7 @@ ${stats ? `
 
           try {
             const parsed = JSON.parse(jsonStr);
-            // Gemini streaming response format
-            const textPart = parsed.candidates?.[0]?.content?.parts?.[0]?.text;
+            const textPart = parsed.choices?.[0]?.delta?.content;
             if (textPart) {
               fullContent += textPart;
               setMessages(prev => prev.map(m => 
@@ -367,7 +342,6 @@ ${stats ? `
         }
       }
 
-      // Mark as complete
       setMessages(prev => prev.map(m => 
         m.id === assistantMessageId 
           ? { ...m, isStreaming: false }
@@ -389,7 +363,7 @@ ${stats ? `
       setIsLoading(false);
       abortControllerRef.current = null;
     }
-  }, [user, messages, buildSystemContext]);
+  }, [user, messages, userRoles, buildSystemContext]);
 
   const clearMessages = useCallback(() => {
     setMessages([]);
