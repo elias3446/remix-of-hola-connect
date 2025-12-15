@@ -64,26 +64,35 @@ export function UsuariosTable({
   // Mapa de roles por usuario
   const userRolesMap = new Map<string, UserRoleList>(userRoles.map(ur => [ur.user_id, ur]));
 
-  // Verificar si el usuario actual tiene rol admin
+  // Verificar roles del usuario actual
   const currentUserRoles = currentProfile?.id ? userRolesMap.get(currentProfile.id)?.roles || [] : [];
-  const currentUserIsAdmin = currentUserRoles.some(role => ADMIN_ROLES.includes(role));
+  const currentUserIsSuperAdmin = currentUserRoles.includes('super_admin');
+  const currentUserIsAdmin = currentUserRoles.includes('administrador');
 
-  // Filtrar usuarios: excluir al usuario actual y a admins si el usuario actual no es admin
+  // Filtrar usuarios según permisos de visibilidad
   const filteredData = useMemo(() => {
     return data.filter(user => {
       // Excluir al usuario actual
       if (currentProfile?.id && user.id === currentProfile.id) return false;
       
-      // Si el usuario actual NO es admin, excluir usuarios con roles admin
-      if (!currentUserIsAdmin) {
-        const targetUserRoles = userRolesMap.get(user.id)?.roles || [];
-        const isTargetAdmin = targetUserRoles.some(role => ADMIN_ROLES.includes(role));
-        if (isTargetAdmin) return false;
+      const targetUserRoles = userRolesMap.get(user.id)?.roles || [];
+      const targetIsSuperAdmin = targetUserRoles.includes('super_admin');
+      const targetIsAdmin = targetUserRoles.includes('administrador');
+      
+      // Si el target es super_admin, solo super_admin puede verlo
+      if (targetIsSuperAdmin) {
+        return currentUserIsSuperAdmin;
       }
       
+      // Si el target es administrador, solo super_admin o administrador puede verlo
+      if (targetIsAdmin) {
+        return currentUserIsSuperAdmin || currentUserIsAdmin;
+      }
+      
+      // Usuarios sin roles admin son visibles para todos
       return true;
     });
-  }, [data, currentProfile?.id, currentUserIsAdmin, userRolesMap]);
+  }, [data, currentProfile?.id, currentUserIsSuperAdmin, currentUserIsAdmin, userRolesMap]);
 
   // Transformar datos para agregar campo 'activo' calculado
   const dataWithActivo: UserWithActivo[] = useMemo(() => 
