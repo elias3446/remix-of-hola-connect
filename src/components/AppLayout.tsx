@@ -7,7 +7,6 @@ import { useUserDataReady } from "@/hooks/entidades";
 import { LoadingScreen } from "@/components/LoadingScreen";
 import { PageHeader } from "@/components/PageHeader";
 import { useUserPresence } from "@/hooks/messages/useUserPresence";
-import { AssistantButton } from "@/components/asistente";
 import { NotificationPermissionPrompt } from "@/components/notifications";
 import { ThemeSync } from "@/components/ThemeSync";
 import { NotificationsProvider } from "@/contexts/NotificationsContext";
@@ -74,7 +73,6 @@ function LayoutContent() {
               <Outlet />
             </main>
           </SidebarInset>
-          <AssistantButton />
           <NotificationPermissionPrompt 
             variant="banner" 
             delay={5000} 
