@@ -15,9 +15,13 @@ import { Switch } from '@/components/ui/switch';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
 import { transitionClasses } from '@/hooks/optimizacion';
+import { useOptimizedProfile } from '@/hooks/entidades/useOptimizedProfile';
 
 // Tipo extendido con campo activo calculado
 type UserWithActivo = User & { activo: boolean };
+
+// Roles administrativos que requieren permisos especiales para ver
+const ADMIN_ROLES = ['super_admin', 'administrador'];
 
 interface UsuariosTableProps {
   onEdit?: (user: User) => void;
@@ -38,6 +42,7 @@ export function UsuariosTable({
   onSelectionChange,
 }: UsuariosTableProps) {
   const navigate = useNavigate();
+  const { data: currentProfile } = useOptimizedProfile();
   const { data, isLoading, remove, refetch } = useOptimizedUsers();
   const { data: userRoles, refetch: refetchRoles } = useOptimizedUserRolesList();
   const { updateUser, loading: updateLoading } = useUpdateUser();
@@ -59,12 +64,33 @@ export function UsuariosTable({
   // Mapa de roles por usuario
   const userRolesMap = new Map<string, UserRoleList>(userRoles.map(ur => [ur.user_id, ur]));
 
+  // Verificar si el usuario actual tiene rol admin
+  const currentUserRoles = currentProfile?.id ? userRolesMap.get(currentProfile.id)?.roles || [] : [];
+  const currentUserIsAdmin = currentUserRoles.some(role => ADMIN_ROLES.includes(role));
+
+  // Filtrar usuarios: excluir al usuario actual y a admins si el usuario actual no es admin
+  const filteredData = useMemo(() => {
+    return data.filter(user => {
+      // Excluir al usuario actual
+      if (currentProfile?.id && user.id === currentProfile.id) return false;
+      
+      // Si el usuario actual NO es admin, excluir usuarios con roles admin
+      if (!currentUserIsAdmin) {
+        const targetUserRoles = userRolesMap.get(user.id)?.roles || [];
+        const isTargetAdmin = targetUserRoles.some(role => ADMIN_ROLES.includes(role));
+        if (isTargetAdmin) return false;
+      }
+      
+      return true;
+    });
+  }, [data, currentProfile?.id, currentUserIsAdmin, userRolesMap]);
+
   // Transformar datos para agregar campo 'activo' calculado
   const dataWithActivo: UserWithActivo[] = useMemo(() => 
-    data.map(user => ({
+    filteredData.map(user => ({
       ...user,
       activo: user.estado === 'activo'
-    })), [data]);
+    })), [filteredData]);
 
   // Transformar selectedRows para que coincidan con UserWithActivo
   const selectedRowsWithActivo: UserWithActivo[] = useMemo(() => 
