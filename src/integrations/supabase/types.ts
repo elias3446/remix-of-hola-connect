@@ -1680,7 +1680,6 @@ export type Database = {
           auto_share_in_messages: boolean | null
           auto_share_reports_enabled: boolean | null
           auto_share_visibility: string | null
-          chat_assistant_enabled: boolean | null
           chat_auto_clear: boolean | null
           chat_persistence_enabled: boolean | null
           chat_retention_days: number | null
@@ -1699,7 +1698,6 @@ export type Database = {
           auto_share_in_messages?: boolean | null
           auto_share_reports_enabled?: boolean | null
           auto_share_visibility?: string | null
-          chat_assistant_enabled?: boolean | null
           chat_auto_clear?: boolean | null
           chat_persistence_enabled?: boolean | null
           chat_retention_days?: number | null
@@ -1718,7 +1716,6 @@ export type Database = {
           auto_share_in_messages?: boolean | null
           auto_share_reports_enabled?: boolean | null
           auto_share_visibility?: string | null
-          chat_assistant_enabled?: boolean | null
           chat_auto_clear?: boolean | null
           chat_persistence_enabled?: boolean | null
           chat_retention_days?: number | null
