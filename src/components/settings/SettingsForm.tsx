@@ -11,7 +11,6 @@ import {
   Palette,
   Clock,
   Trash2,
-  Bot,
   Moon,
   Sun,
   Monitor,
@@ -82,7 +81,6 @@ export function SettingsForm() {
     chat_persistence_enabled: true,
     chat_auto_clear: false,
     chat_retention_days: 30,
-    chat_assistant_enabled: true,
     auto_delete_read: false,
     retention_days: 90,
   });
@@ -133,7 +131,6 @@ export function SettingsForm() {
         chat_persistence_enabled: userSettings.chat_persistence_enabled ?? true,
         chat_auto_clear: userSettings.chat_auto_clear ?? false,
         chat_retention_days: userSettings.chat_retention_days ?? 30,
-        chat_assistant_enabled: userSettings.chat_assistant_enabled ?? true,
         auto_delete_read: userSettings.auto_delete_read ?? false,
         retention_days: userSettings.retention_days ?? 90,
       });
@@ -611,24 +608,6 @@ export function SettingsForm() {
                     />
                   </div>
 
-                  <Separator />
-
-                  {/* Asistente de chat */}
-                  <div className="flex items-center justify-between">
-                    <div className="space-y-0.5">
-                      <Label className="text-sm font-medium flex items-center gap-2">
-                        <Bot className="h-4 w-4 text-muted-foreground" />
-                        Asistente de chat
-                      </Label>
-                      <p className="text-sm text-muted-foreground">
-                        Habilitar sugerencias inteligentes en el chat
-                      </p>
-                    </div>
-                    <Switch
-                      checked={formData.chat_assistant_enabled ?? true}
-                      onCheckedChange={(checked) => updateField('chat_assistant_enabled', checked)}
-                    />
-                  </div>
                 </CardContent>
               </Card>
             </TabsContent>
