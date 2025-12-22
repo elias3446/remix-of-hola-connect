@@ -45,3 +45,4 @@ export { useAutoShareReport } from './useAutoShareReport';
 export { usePostViews, useRegisterPostView, clearPostViewsCache, prefetchPostViews } from './usePostViews';
 export { usePublicacionInteractions, prefetchPublicacionInteractions, clearInteractionsCache } from './usePublicacionInteractions';
 export { usePushNotifications, type NotificationPermissionState } from './usePushNotifications';
+export { useRouteProtection, useCanAccessRoute, routeConfigurations, findRouteConfig, type RouteConfig, type UseRouteProtectionResult } from './useRouteProtection';
